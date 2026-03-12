@@ -1,58 +1,65 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 
 public class ChatClient {
 
-    public ChatClient() {
-    }
+    private static final String SERVER_IP = "172.20.10.9";
+    private static final int PORT = 6013;
 
-    public static void main(String[] var0) {
+    public static void main(String[] args) {
+
         try {
-            Socket var1 = new Socket("172.20.10.9", 6013);
 
-            BufferedReader var2 =
-                    new BufferedReader(new InputStreamReader(var1.getInputStream()));
+            Socket socket = new Socket(SERVER_IP, PORT);
 
-            PrintWriter var3 =
-                    new PrintWriter(var1.getOutputStream(), true);
+            System.out.println("Connected to server.");
 
-            BufferedReader var4 =
-                    new BufferedReader(new InputStreamReader(System.in));
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(socket.getInputStream()));
 
-            // Read first message from server (date or name prompt)
-            String var5 = var2.readLine();
-            System.out.println(var5);
+            PrintWriter out = new PrintWriter(
+                    socket.getOutputStream(), true);
 
-            // Thread to read all server messages
-            Thread var6 = new Thread(() -> {
-                while (true) {
-                    try {
-                        String var7;
-                        if ((var7 = var2.readLine()) != null) {
-                            System.out.println(var7);
-                            continue;
-                        }
-                    } catch (IOException var8) {
-                        System.out.println("Disconnected from server.");
+            BufferedReader console = new BufferedReader(
+                    new InputStreamReader(System.in));
+
+            // Thread to receive messages from server
+            Thread receiveThread = new Thread(() -> {
+
+                String serverMsg;
+
+                try {
+
+                    while ((serverMsg = in.readLine()) != null) {
+
+                        System.out.println(serverMsg);
                     }
-                    return;
+
+                } catch (IOException e) {
+
+                    System.out.println("Disconnected from server.");
                 }
             });
-            var6.start();
 
-            // Send user input to server
-            String var9;
-            while ((var9 = var4.readLine()) != null) {
-                var3.println(var9);
+            receiveThread.start();
+
+            // Send messages to server
+            String userInput;
+
+            while ((userInput = console.readLine()) != null) {
+
+                out.println(userInput);
+
+                if (userInput.equalsIgnoreCase("/exit")) {
+                    break;
+                }
             }
 
-            var1.close();
+            socket.close();
 
-        } catch (IOException var10) {
-            System.err.println("Error Connecting to server: " + var10);
+        } catch (Exception e) {
+
+            System.out.println("Unable to connect to server.");
         }
     }
 }
